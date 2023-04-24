@@ -752,12 +752,12 @@ class authorizenet_aim extends base {
 
       // Insert the data into the database
       $sql = "INSERT INTO " . TABLE_AUTHORIZENET . "  (id, customer_id, order_id, response_code, response_text, authorization_type, transaction_id, sent, received, time, session_id) VALUES (NULL, :custID, :orderID, :respCode, :respText, :authType, :transID, :sentData, :recvData, :orderTime, :sessID )";
-      $sql = $db->bindVars($sql, ':custID', $_SESSION['customer_id'], 'integer');
+      $sql = $db->bindVars($sql, ':custID', ($_SESSION['customer_id'] ?? '-1'), 'integer');
       $sql = $db->bindVars($sql, ':orderID', preg_replace('/[^0-9]/', '', $response[7]), 'integer');
       $sql = $db->bindVars($sql, ':respCode', $response[0], 'integer');
       $sql = $db->bindVars($sql, ':respText', $db_response_text, 'string');
       $sql = $db->bindVars($sql, ':authType', $response[11], 'string');
-      if (trim($this->transaction_id) != '') {
+      if (!empty($this->transaction_id)) {
         $sql = $db->bindVars($sql, ':transID', substr($this->transaction_id, 0, strpos($this->transaction_id, ' ')), 'string');
       } else {
         $sql = $db->bindVars($sql, ':transID', 'NULL', 'passthru');
