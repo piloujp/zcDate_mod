@@ -441,7 +441,7 @@ class authorizenet_aim extends base {
     $this->auth_code = $response[4];
     $this->transaction_id = $response[6];
     $this->avs_response= $response[5];
-    $this->ccv_response= $response[38];
+    $this->ccv_response= ($response[38] ?? '');
     $response_msg_to_customer = $response_text . ($this->commError == '' ? '' : ' Communications Error - Please notify webmaster.');
 
     if ($this->display_specific_failure_reason_for_cvv_and_date) {
@@ -483,7 +483,8 @@ class authorizenet_aim extends base {
       zen_redirect(zen_href_link(FILENAME_CHECKOUT_PAYMENT, '', 'SSL', true, false));
     }
     if ($response_code == '4'){
-        $this->order_status = (int)MODULE_PAYMENT_AUTHORIZENET_AIM_REVIEW_ORDER_STATUS_ID;
+        $review_order_status = (int)MODULE_PAYMENT_AUTHORIZENET_AIM_REVIEW_ORDER_STATUS_ID;
+        $this->order_status = ($review_order_status === 0) ? (int)DEFAULT_ORDERS_STATUS_ID : $review_order_status;
     }
     if (!empty($response[88])) {
       $_SESSION['payment_method_messages'] = $response[88];
@@ -657,7 +658,7 @@ class authorizenet_aim extends base {
     $this->reportable_submit_data = $submit_data;
     $this->reportable_submit_data['x_login'] = '*******';
     $this->reportable_submit_data['x_tran_key'] = '*******';
-    if (isset($this->reportable_submit_data['x_card_num'])) $this->reportable_submit_data['x_card_num'] = str_repeat('X', strlen($this->reportable_submit_data['x_card_num'] - 4)) . substr($this->reportable_submit_data['x_card_num'], -4);
+    if (isset($this->reportable_submit_data['x_card_num'])) $this->reportable_submit_data['x_card_num'] = str_repeat('X', strlen($this->reportable_submit_data['x_card_num']) - 4) . substr($this->reportable_submit_data['x_card_num'], -4);
     if (isset($this->reportable_submit_data['x_exp_date'])) $this->reportable_submit_data['x_exp_date'] = '****';
     if (isset($this->reportable_submit_data['x_card_code'])) $this->reportable_submit_data['x_card_code'] = '****';
     $this->reportable_submit_data['url'] = $url;
@@ -722,7 +723,7 @@ class authorizenet_aim extends base {
       $errorMessage = date('M-d-Y h:i:s') .
                       "\n=================================\n\n" .
                       ($this->commError !='' ? 'Comm results: ' . $this->commErrNo . ' ' . $this->commError . "\n\n" : '') .
-                      'Response Code: ' . $response[0] . ".\nResponse Text: " . $response[3] . "\n\n" .
+                      'Response Code: ' . ($response[0] ?? "Unknown") . ".\nResponse Text: " . $response[3] . "\n\n" .
                       'Sending to Authorizenet: ' . print_r($this->reportable_submit_data, true) . "\n\n" .
                       'Results Received back from Authorizenet: ' . print_r($resp_output, true) . "\n\n" .
                       'CURL communication info: ' . print_r($this->commInfo, true) . "\n";
@@ -745,8 +746,9 @@ class authorizenet_aim extends base {
     // Insert the send and receive response data into the database.
     // This can be used for testing or for implementation in other applications
     // This can be turned on and off if the Admin Section
+    $response_order_id = ($response[7] ?? '');
     if (MODULE_PAYMENT_AUTHORIZENET_AIM_STORE_DATA == 'True'){
-      $db_response_text = $response[3] . ($this->commError !='' ? ' - Comm results: ' . $this->commErrNo . ' ' . $this->commError : '');
+      $db_response_text = ($response[3] ?? "Unknown") . ($this->commError !='' ? ' - Comm results: ' . $this->commErrNo . ' ' . $this->commError : '');
       $db_response_text .= ($response[0] == 2 && $response[2] == 4) ? ' NOTICE: Card should be picked up - possibly stolen ' : '';
       $db_response_text .= ($response[0] == 3 && $response[2] == 11) ? ' DUPLICATE TRANSACTION ATTEMPT ' : '';
 
@@ -756,13 +758,13 @@ class authorizenet_aim extends base {
       $sql = $db->bindVars($sql, ':orderID', preg_replace('/[^0-9]/', '', $response[7]), 'integer');
       $sql = $db->bindVars($sql, ':respCode', $response[0], 'integer');
       $sql = $db->bindVars($sql, ':respText', $db_response_text, 'string');
-      $sql = $db->bindVars($sql, ':authType', $response[11], 'string');
+      $sql = $db->bindVars($sql, ':authType', ($response[11] ?? ''), 'string');
       if (!empty($this->transaction_id)) {
         $sql = $db->bindVars($sql, ':transID', substr($this->transaction_id, 0, strpos($this->transaction_id, ' ')), 'string');
       } else {
         $sql = $db->bindVars($sql, ':transID', 'NULL', 'passthru');
       }
-      $sql = $db->bindVars($sql, ':sentData', print_r($this->reportable_submit_data, true), 'string');
+      $sql = $db->bindVars($sql, ':sentData', print_r($this->reportable_submit_data, true), 'stringIgnoreNull');
       $sql = $db->bindVars($sql, ':recvData', print_r($response, true), 'string');
       $sql = $db->bindVars($sql, ':orderTime', $order_time, 'string');
       $sql = $db->bindVars($sql, ':sessID', $sessID, 'string');
@@ -779,182 +781,198 @@ class authorizenet_aim extends base {
       $db->Execute("ALTER TABLE " . TABLE_AUTHORIZENET . " MODIFY transaction_id varchar(64) default NULL");
     }
   }
- /**
-   * Used to submit a refund for a given transaction.
-   */
-  function _doRefund($oID, $amount = 0) {
-    global $messageStack;
-    $new_order_status = (int)MODULE_PAYMENT_AUTHORIZENET_AIM_REFUNDED_ORDER_STATUS_ID;
-    if ($new_order_status == 0) $new_order_status = 1;
-    $proceedToRefund = true;
-    $refundNote = strip_tags(zen_db_input($_POST['refnote']));
-    if (isset($_POST['refconfirm']) && $_POST['refconfirm'] != 'on') {
-      $messageStack->add_session(MODULE_PAYMENT_AUTHORIZENET_AIM_TEXT_REFUND_CONFIRM_ERROR, 'error');
-      $proceedToRefund = false;
-    }
-    if (isset($_POST['buttonrefund']) && $_POST['buttonrefund'] == MODULE_PAYMENT_AUTHORIZENET_AIM_ENTRY_REFUND_BUTTON_TEXT) {
-      $refundAmt = (float)$_POST['refamt'];
-      $new_order_status = (int)MODULE_PAYMENT_AUTHORIZENET_AIM_REFUNDED_ORDER_STATUS_ID;
-      if ($refundAmt == 0) {
-        $messageStack->add_session(MODULE_PAYMENT_AUTHORIZENET_AIM_TEXT_INVALID_REFUND_AMOUNT, 'error');
-        $proceedToRefund = false;
-      }
-    }
-    if (isset($_POST['cc_number']) && trim($_POST['cc_number']) == '') {
-      $messageStack->add_session(MODULE_PAYMENT_AUTHORIZENET_AIM_TEXT_CC_NUM_REQUIRED_ERROR, 'error');
-    }
-    if (isset($_POST['trans_id']) && trim($_POST['trans_id']) == '') {
-      $messageStack->add_session(MODULE_PAYMENT_AUTHORIZENET_AIM_TEXT_TRANS_ID_REQUIRED_ERROR, 'error');
-      $proceedToRefund = false;
-    }
-
-    /**
-     * Submit refund request to gateway
+   /**
+     * Used to submit a refund for a given transaction.
      */
-    if ($proceedToRefund) {
-      $submit_data = array('x_type' => 'CREDIT',
-                           'x_card_num' => trim($_POST['cc_number']),
-                           'x_amount' => round($refundAmt, 2),
-                           'x_trans_id' => trim($_POST['trans_id'])
-                           );
-      unset($response);
-      $response = $this->_sendRequest($submit_data);
-      $response_code = $response[0];
-      $response_text = $response[3];
-      $response_alert = $response_text . ($this->commError == '' ? '' : ' Communications Error - Please notify webmaster.');
-      $this->reportable_submit_data['Note'] = $refundNote;
-      $this->_debugActions($response);
+    public function _doRefund($oID, $amount = 0)
+    {
+        global $messageStack;
 
-      if ($response_code != '1') {
-        $messageStack->add_session($response_alert, 'error');
-      } else {
-        // Success, so save the results
-        $comments = 'REFUND INITIATED. Trans ID:' . $response[6] . ' ' . $response[4]. "\n" . ' Gross Refund Amt: ' . $response[9] . "\n" . $refundNote;
-        zen_update_orders_history($oID, $comments, null, $new_order_status, 0);
+        $new_order_status = (int)MODULE_PAYMENT_AUTHORIZENET_AIM_REFUNDED_ORDER_STATUS_ID;
+        if ($new_order_status === 0) {
+            $new_order_status = (int)DEFAULT_ORDERS_STATUS_ID;
+        }
+        $proceedToRefund = true;
+        $refundNote = strip_tags(zen_db_input($_POST['refnote']));
+        if (isset($_POST['refconfirm']) && $_POST['refconfirm'] !== 'on') {
+            $messageStack->add_session(MODULE_PAYMENT_AUTHORIZENET_AIM_TEXT_REFUND_CONFIRM_ERROR, 'error');
+            $proceedToRefund = false;
+        }
+        if (isset($_POST['buttonrefund']) && $_POST['buttonrefund'] === MODULE_PAYMENT_AUTHORIZENET_AIM_ENTRY_REFUND_BUTTON_TEXT) {
+            $refundAmt = (float)$_POST['refamt'];
+            if ($refundAmt == 0) {
+                $messageStack->add_session(MODULE_PAYMENT_AUTHORIZENET_AIM_TEXT_INVALID_REFUND_AMOUNT, 'error');
+                $proceedToRefund = false;
+            }
+        }
+        if (isset($_POST['cc_number']) && trim($_POST['cc_number']) === '') {
+            $messageStack->add_session(MODULE_PAYMENT_AUTHORIZENET_AIM_TEXT_CC_NUM_REQUIRED_ERROR, 'error');
+            $proceedToRefund = false;
+        }
+        if (isset($_POST['trans_id']) && trim($_POST['trans_id']) === '') {
+            $messageStack->add_session(MODULE_PAYMENT_AUTHORIZENET_AIM_TEXT_TRANS_ID_REQUIRED_ERROR, 'error');
+            $proceedToRefund = false;
+        }
 
-        $messageStack->add_session(sprintf(MODULE_PAYMENT_AUTHORIZENET_AIM_TEXT_REFUND_INITIATED, $response[9], $response[6]), 'success');
-        return true;
-      }
-    }
-    return false;
-  }
+        /**
+         * Submit refund request to gateway
+         */
+        if ($proceedToRefund === true) {
+            $submit_data = [
+                'x_type' => 'CREDIT',
+                'x_card_num' => trim($_POST['cc_number']),
+                'x_amount' => round($refundAmt, 2),
+                'x_trans_id' => trim($_POST['trans_id'])
+            ];
+            unset($response);
+            $response = $this->_sendRequest($submit_data);
+            $response_code = $response[0];
+            $response_text = $response[3];
+            $response_alert = $response_text . ($this->commError == '' ? '' : ' Communications Error - Please notify webmaster.');
+            $this->reportable_submit_data['Note'] = $refundNote;
+            $this->_debugActions($response);
 
-  /**
-   * Used to capture part or all of a given previously-authorized transaction.
-   */
-  function _doCapt($oID, $amt = 0, $currency = 'USD') {
-    global $messageStack;
+            if ($response_code != '1') {
+                $messageStack->add_session($response_alert, 'error');
+            } else {
+                // Success, so save the results
+                $comments = 'REFUND INITIATED. Trans ID:' . $response[6] . ' ' . $response[4]. "\n" . ' Gross Refund Amt: ' . $response[9] . "\n" . $refundNote;
+                zen_update_orders_history($oID, $comments, null, $new_order_status, 1);
 
-    //@TODO: Read current order status and determine best status to set this to
-    $new_order_status = (int)MODULE_PAYMENT_AUTHORIZENET_AIM_ORDER_STATUS_ID;
-    if ($new_order_status == 0) $new_order_status = 1;
-
-    $proceedToCapture = true;
-    $captureNote = strip_tags(zen_db_input($_POST['captnote']));
-    if (isset($_POST['captconfirm']) && $_POST['captconfirm'] == 'on') {
-    } else {
-      $messageStack->add_session(MODULE_PAYMENT_AUTHORIZENET_AIM_TEXT_CAPTURE_CONFIRM_ERROR, 'error');
-      $proceedToCapture = false;
-    }
-    if (isset($_POST['btndocapture']) && $_POST['btndocapture'] == MODULE_PAYMENT_AUTHORIZENET_AIM_ENTRY_CAPTURE_BUTTON_TEXT) {
-      $captureAmt = (float)$_POST['captamt'];
-/*
-      if ($captureAmt == 0) {
-        $messageStack->add_session(MODULE_PAYMENT_AUTHORIZENET_AIM_TEXT_INVALID_CAPTURE_AMOUNT, 'error');
-        $proceedToCapture = false;
-      }
-*/
-    }
-    if (isset($_POST['captauthid']) && trim($_POST['captauthid']) != '') {
-      // okay to proceed
-    } else {
-      $messageStack->add_session(MODULE_PAYMENT_AUTHORIZENET_AIM_TEXT_TRANS_ID_REQUIRED_ERROR, 'error');
-      $proceedToCapture = false;
+                $messageStack->add_session(sprintf(MODULE_PAYMENT_AUTHORIZENET_AIM_TEXT_REFUND_INITIATED, $response[9], $response[6]), 'success');
+                return true;
+            }
+        }
+        return false;
     }
     /**
      * Submit capture request to Authorize.net
      */
-    if ($proceedToCapture) {
-      // Populate an array that contains all of the data to be sent to Authorize.net
-      unset($submit_data);
-      $submit_data = array(
-                           'x_type' => 'PRIOR_AUTH_CAPTURE',
-                           'x_amount' => round($captureAmt, 2),
-                           'x_trans_id' => strip_tags(trim($_POST['captauthid'])),
-//                         'x_invoice_num' => $new_order_id,
-//                         'x_po_num' => $order->info['po_number'],
-//                         'x_freight' => $order->info['shipping_cost'],
-//                         'x_tax_exempt' => 'FALSE', /* 'TRUE' or 'FALSE' */
-//                         'x_tax' => $order->info['tax'],
-                           );
+    public function _doCapt($oID, $amt = 0, $currency = 'USD')
+    {
+        global $messageStack;
 
-      $response = $this->_sendRequest($submit_data);
-      $response_code = $response[0];
-      $response_text = $response[3];
-      $response_alert = $response_text . ($this->commError == '' ? '' : ' Communications Error - Please notify webmaster.');
-      $this->reportable_submit_data['Note'] = $captureNote;
-      $this->_debugActions($response);
+        //@TODO: Read current order status and determine best status to set this to
+        $new_order_status = (int)MODULE_PAYMENT_AUTHORIZENET_AIM_ORDER_STATUS_ID;
+        if ($new_order_status === 0) {
+            $new_order_status = (int)DEFAULT_ORDERS_STATUS_ID;
+        }
 
-      if ($response_code != '1' || ($response[0]==1 && $response[2] == 311) ) {
-        $messageStack->add_session($response_alert, 'error');
-      } else {
-        // Success, so save the results
-        $comments = 'FUNDS COLLECTED. Auth Code: ' . $response[4] . "\n" . 'Trans ID: ' . $response[6] . "\n" . ' Amount: ' . ($response[9] == 0.00 ? 'Full Amount' : $response[9]) . "\n" . 'Time: ' . date('Y-m-D h:i:s') . "\n" . $captureNote;
-        zen_update_orders_history($oID, $comments, null, $new_order_status, 0);
+        $proceedToCapture = true;
+        $captureNote = strip_tags(zen_db_input($_POST['captnote']));
+        if (!isset($_POST['captconfirm']) || $_POST['captconfirm'] !== 'on') {
+            $messageStack->add_session(MODULE_PAYMENT_AUTHORIZENET_AIM_TEXT_CAPTURE_CONFIRM_ERROR, 'error');
+            $proceedToCapture = false;
+        }
+        if (isset($_POST['btndocapture']) && $_POST['btndocapture'] === MODULE_PAYMENT_AUTHORIZENET_AIM_ENTRY_CAPTURE_BUTTON_TEXT) {
+          $captureAmt = (float)$_POST['captamt'];
+    /*
+          if ($captureAmt == 0) {
+            $messageStack->add_session(MODULE_PAYMENT_AUTHORIZENET_AIM_TEXT_INVALID_CAPTURE_AMOUNT, 'error');
+            $proceedToCapture = false;
+          }
+    */
+        }
+        if (!isset($_POST['captauthid']) || trim($_POST['captauthid']) === '') {
+            $messageStack->add_session(MODULE_PAYMENT_AUTHORIZENET_AIM_TEXT_TRANS_ID_REQUIRED_ERROR, 'error');
+            $proceedToCapture = false;
+        }
 
-        $messageStack->add_session(sprintf(MODULE_PAYMENT_AUTHORIZENET_AIM_TEXT_CAPT_INITIATED, ($response[9] == 0.00 ? 'Full Amount' : $response[9]), $response[6], $response[4]), 'success');
-        return true;
-      }
+        /**
+         * Submit capture request to Authorize.net
+         */
+        if ($proceedToCapture === true) {
+            // Populate an array that contains all of the data to be sent to Authorize.net
+            $submit_data = [
+                'x_type' => 'PRIOR_AUTH_CAPTURE',
+                'x_amount' => round($captureAmt, 2),
+                'x_trans_id' => strip_tags(trim($_POST['captauthid'])),
+    //                         'x_invoice_num' => $new_order_id,
+    //                         'x_po_num' => $order->info['po_number'],
+    //                         'x_freight' => $order->info['shipping_cost'],
+    //                         'x_tax_exempt' => 'FALSE', /* 'TRUE' or 'FALSE' */
+    //                         'x_tax' => $order->info['tax'],
+            ];
+
+            $response = $this->_sendRequest($submit_data);
+            $response_code = $response[0];
+            $response_text = $response[3];
+            $response_alert = $response_text . ($this->commError == '' ? '' : ' Communications Error - Please notify webmaster.');
+            $this->reportable_submit_data['Note'] = $captureNote;
+            $this->_debugActions($response);
+
+            if ($response_code != '1' || ($response[0] == 1 && $response[2] == 311)) {
+                $messageStack->add_session($response_alert, 'error');
+            } else {
+                // Success, so save the results
+                $comments =
+                    'FUNDS COLLECTED. Auth Code: ' . $response[4] . "\n" .
+                    'Trans ID: ' . $response[6] . "\n" .
+                    ' Amount: ' . ($response[9] == 0.00 ? 'Full Amount' : $response[9]) . "\n" .
+                    'Time: ' . date('Y-m-D h:i:s') . "\n" .
+                    $captureNote;
+                zen_update_orders_history($oID, $comments, null, $new_order_status, 1);
+
+                $messageStack->add_session(sprintf(MODULE_PAYMENT_AUTHORIZENET_AIM_TEXT_CAPT_INITIATED, ($response[9] == 0.00 ? 'Full Amount' : $response[9]), $response[6], $response[4]), 'success');
+                return true;
+            }
+        }
+        return false;
     }
-    return false;
-  }
-  /**
-   * Used to void a given previously-authorized transaction.
-   */
-  function _doVoid($oID, $note = '') {
-    global $messageStack;
 
-    $new_order_status = (int)MODULE_PAYMENT_AUTHORIZENET_AIM_REFUNDED_ORDER_STATUS_ID;
-    if ($new_order_status == 0) $new_order_status = 1;
-    $voidNote = strip_tags(zen_db_input($_POST['voidnote'] . $note));
-    $voidAuthID = trim(strip_tags(zen_db_input($_POST['voidauthid'])));
-    $proceedToVoid = true;
-    if (isset($_POST['ordervoid']) && $_POST['ordervoid'] == MODULE_PAYMENT_AUTHORIZENET_AIM_ENTRY_VOID_BUTTON_TEXT) {
-      if (isset($_POST['voidconfirm']) && $_POST['voidconfirm'] != 'on') {
-        $messageStack->add_session(MODULE_PAYMENT_AUTHORIZENET_AIM_TEXT_VOID_CONFIRM_ERROR, 'error');
-        $proceedToVoid = false;
-      }
-    }
-    if ($voidAuthID == '') {
-      $messageStack->add_session(MODULE_PAYMENT_AUTHORIZENET_AIM_TEXT_TRANS_ID_REQUIRED_ERROR, 'error');
-      $proceedToVoid = false;
-    }
-    // Populate an array that contains all of the data to be sent to gateway
-    $submit_data = array('x_type' => 'VOID',
-                         'x_trans_id' => trim($voidAuthID) );
     /**
      * Submit void request to Gateway
      */
-    if ($proceedToVoid) {
-      $response = $this->_sendRequest($submit_data);
-      $response_code = $response[0];
-      $response_text = $response[3];
-      $response_alert = $response_text . ($this->commError == '' ? '' : ' Communications Error - Please notify webmaster.');
-      $this->reportable_submit_data['Note'] = $voidNote;
-      $this->_debugActions($response);
+    public function _doVoid($oID, $note = '')
+    {
+        global $messageStack;
 
-      if ($response_code != '1' || ($response[0]==1 && $response[2] == 310) ) {
-        $messageStack->add_session($response_alert, 'error');
-      } else {
-        // Success, so save the results
-        $comments = 'VOIDED. Trans ID: ' . $response[6] . ' ' . $response[4] . "\n" . $voidNote;
-        zen_update_orders_history($oID, $comments, null, $new_order_status, 0);
+        $new_order_status = (int)MODULE_PAYMENT_AUTHORIZENET_AIM_REFUNDED_ORDER_STATUS_ID;
+        if ($new_order_status === 0) {
+            $new_order_status = (int)DEFAULT_ORDERS_STATUS_ID;
+        }
+        $voidNote = strip_tags(zen_db_input($_POST['voidnote'] . $note));
+        $voidAuthID = trim(strip_tags(zen_db_input($_POST['voidauthid'])));
+        $proceedToVoid = true;
+        if (isset($_POST['ordervoid']) && $_POST['ordervoid'] === MODULE_PAYMENT_AUTHORIZENET_AIM_ENTRY_VOID_BUTTON_TEXT) {
+            if (isset($_POST['voidconfirm']) && $_POST['voidconfirm'] !== 'on') {
+                $messageStack->add_session(MODULE_PAYMENT_AUTHORIZENET_AIM_TEXT_VOID_CONFIRM_ERROR, 'error');
+                $proceedToVoid = false;
+            }
+        }
+        if ($voidAuthID === '') {
+            $messageStack->add_session(MODULE_PAYMENT_AUTHORIZENET_AIM_TEXT_TRANS_ID_REQUIRED_ERROR, 'error');
+            $proceedToVoid = false;
+        }
 
-        $messageStack->add_session(sprintf(MODULE_PAYMENT_AUTHORIZENET_AIM_TEXT_VOID_INITIATED, $response[6], $response[4]), 'success');
-        return true;
-      }
+        // Populate an array that contains all of the data to be sent to gateway
+        $submit_data = [
+            'x_type' => 'VOID',
+            'x_trans_id' => trim($voidAuthID),
+        ];
+
+        /**
+         * Submit void request to Gateway
+         */
+        if ($proceedToVoid === true) {
+            $response = $this->_sendRequest($submit_data);
+            $response_code = $response[0];
+            $response_text = $response[3];
+            $response_alert = $response_text . ($this->commError == '' ? '' : ' Communications Error - Please notify webmaster.');
+            $this->reportable_submit_data['Note'] = $voidNote;
+            $this->_debugActions($response);
+
+            if ($response_code != '1' || ($response[0] == 1 && $response[2] == 310)) {
+                $messageStack->add_session($response_alert, 'error');
+            } else {
+                // Success, so save the results
+                $comments = 'VOIDED. Trans ID: ' . $response[6] . ' ' . $response[4] . "\n" . $voidNote;
+                zen_update_orders_history($oID, $comments, null, $new_order_status, 1);
+
+                $messageStack->add_session(sprintf(MODULE_PAYMENT_AUTHORIZENET_AIM_TEXT_VOID_INITIATED, $response[6], $response[4]), 'success');
+                return true;
+            }
+        }
+        return false;
     }
-    return false;
-  }
-
 }
