@@ -3,7 +3,7 @@
  * @copyright Copyright 2003-2022 Zen Cart Development Team
  * @license http://www.zen-cart.com/license/2_0.txt GNU Public License V2.0
  * @version $Id: brittainmark 2022 Aug 30 Modified in v1.5.8 $
- * @version $Id: Pilou2-PilouJP 2023 Jan 21 Modified in v1.5.8 $
+ * @version $Id: Pilou2-PilouJP 2023 Mar 24 Modified in v1.5.8a $
  */
 
 // Parameters to be transmit to this class output method can be found here: https://www.unicode.org/reports/tr35/tr35-dates.html#Date_Field_Symbol_Table
@@ -15,7 +15,9 @@ class zcDate extends base
         $isStrftime = false,
         $locale,
         $debug = false,
-        $dateObject;
+        $dateObject,
+		$strftime2intl,
+		$strftime2date;
 
     // -----
     // The $zen_date_debug is a "soft" configuration setting that can be forced (defaults to false)
