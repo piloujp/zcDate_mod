@@ -2,11 +2,11 @@
 /**
  * paypaldp.php payment module class for Paypal Payments Pro (aka Website Payments Pro)
  *
- * @copyright Copyright 2003-2022 Zen Cart Development Team
+ * @copyright Copyright 2003-2023 Zen Cart Development Team
  * @copyright Portions Copyright 2005 CardinalCommerce
  * @copyright Portions Copyright 2003 osCommerce
  * @license http://www.zen-cart.com/license/2_0.txt GNU Public License V2.0
- * @version $Id: brittainmark 2022 Oct 11 Modified in v1.5.8 $
+ * @version $Id: Scott C Wilson 2022 Dec 21 Modified in v1.5.8a $
  */
 /**
  * The transaction URL for the Cardinal Centinel 3D-Secure service.
@@ -291,8 +291,6 @@ class paypaldp extends base {
 //    $this->new_acct_notify = MODULE_PAYMENT_PAYPALDP_NEW_ACCT_NOTIFY;
     $this->zone = (int)MODULE_PAYMENT_PAYPALDP_ZONE;
     if (is_object($order)) $this->update_status();
-
-    if (PROJECT_VERSION_MAJOR != '1' && substr(PROJECT_VERSION_MINOR, 0, 3) != '5.6') $this->enabled = false;
 
     // offer credit card choices for pull-down menu -- only needed for UK version
     $this->cards = array();
@@ -930,7 +928,7 @@ class paypaldp extends base {
       $optionsAll['CUSTOM'] = 'DP-' . (int)$_SESSION['customer_id'] . '-' . time();
 
       // send the store name as transaction identifier, to help distinguish payments between multiple stores:
-      $optionsAll['INVNUM'] = (int)$_SESSION['customer_id'] . '-' . time() . '-[' . substr(preg_replace('/[^a-zA-Z0-9_]/', '', STORE_NAME), 0, 30) . ']';  // (cannot send actual invoice number because it's not assigned until after payment is completed)
+      $optionsAll['INVNUM'] = (int)$_SESSION['customer_id'] . '-' . (floor(time()/60)) . '-[' . substr(preg_replace('/[^a-zA-Z0-9_]/', '', STORE_NAME), 0, 30) . ']';  // (cannot send actual invoice number because it's not assigned until after payment is completed)
 
 //       This feature must be enabled in your PayPal account, by contacting PayPal Support:
 //       $optionsAll['SOFTDESCRIPTOR'] = substr(preg_replace('/[^a-zA-Z0-9. ]/', '', STORE_NAME), 0, 23);
@@ -1029,7 +1027,7 @@ class paypaldp extends base {
     if ($this->requiresLookup($order->info['cc_type']) == true) {
       // CardinalCommerce Liability Protection Status
       // Inserts 'PROTECTED' or 'NOT PROTECTED' status, ECI, CAVV values in the order status history comments
-      if (!empty($_SESSION['3Dsecure_auth_eci'])) { 
+      if (!empty($_SESSION['3Dsecure_auth_eci'])) {
          $auth_proc_status = $this->determine3DSecureProtection($order->info['cc_type'], $_SESSION['3Dsecure_auth_eci']);
          $commentString = "3D-Secure: " . $auth_proc_status . "\n" . 'ECI Value = ' . $_SESSION['3Dsecure_auth_eci'] . "\n" . 'CAVV Value = ' . $_SESSION['3Dsecure_auth_cavv'];
          zen_update_orders_history($insert_id, $commentString, null, $order->info['order_status'], -1);

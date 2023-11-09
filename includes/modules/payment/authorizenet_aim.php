@@ -2,10 +2,10 @@
 /**
  * authorize.net AIM payment method class
  *
- * @copyright Copyright 2003-2022 Zen Cart Development Team
+ * @copyright Copyright 2003-2023 Zen Cart Development Team
  * @copyright Portions Copyright 2003 osCommerce
  * @license http://www.zen-cart.com/license/2_0.txt GNU Public License V2.0
- * @version $Id: brittainmark 2022 Sep 23 Modified in v1.5.8 $
+ * @version $Id: Scott C Wilson 2023 Mar 15 Modified in v1.5.8a $
  */
 /**
  * Authorize.net Payment Module (AIM version)
@@ -845,8 +845,9 @@ class authorizenet_aim extends base {
         }
         return false;
     }
+
     /**
-     * Submit capture request to Authorize.net
+     * Used to capture part or all of a given previously-authorized transaction.
      */
     public function _doCapt($oID, $amt = 0, $currency = 'USD')
     {
@@ -921,7 +922,7 @@ class authorizenet_aim extends base {
     }
 
     /**
-     * Submit void request to Gateway
+     * Used to void a given previously-authorized transaction.
      */
     public function _doVoid($oID, $note = '')
     {
