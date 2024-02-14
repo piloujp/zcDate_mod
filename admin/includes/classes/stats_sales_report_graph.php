@@ -1,9 +1,9 @@
 <?php
 /**
- * @copyright Copyright 2003-2023 Zen Cart Development Team
+ * @copyright Copyright 2003-2024 Zen Cart Development Team
  * @author inspired from sales_report_graphs.php,v 0.01 2002/11/27 19:02:22 cwi Exp  Released under the GNU General Public License $
  * @license http://www.zen-cart.com/license/2_0.txt GNU Public License V2.0
- * @version $Id: Scott C Wilson 2022 Oct 16 Modified in v1.5.8a $
+ * @version $Id: proseLA 2023 Aug 19 Modified in v2.0.0-alpha1 $
  */
 class statsSalesReportGraph
 {
@@ -34,7 +34,7 @@ class statsSalesReportGraph
         $status_available = [],
         $status_available_size = 0,
         $size = 0;
-       
+
     /**
      * statsSalesReportGraph constructor.
      *
@@ -56,13 +56,9 @@ class statsSalesReportGraph
         $this->globalStartDate = mktime(0, 0, 0, date('m', $first->fields['first']), date('d', $first->fields['first']), date('Y', $first->fields['first']));
 
         // get all possible status for filter
-        $statuses = $db->Execute("SELECT * FROM " . TABLE_ORDERS_STATUS . " WHERE language_id = " . (int)$_SESSION['languages_id'], false,true, 1800);
-        $tmp = [];
-        foreach ($statuses as $status) {
-            $tmp[] = ['index'=> $status['orders_status_id'], 'value' => $status['orders_status_name']];
-        }
-        $this->status_available = $tmp;
-        $this->status_available_size = count($tmp);
+        $ordersStatus = zen_getOrdersStatuses();
+        $this->status_available = $ordersStatus['orders_statuses'];
+        $this->status_available_size = count($ordersStatus['orders_statuses']);
 
         // -----
         // If supplied, the $startDate and $endDate are expected to be either:
@@ -254,9 +250,9 @@ class statsSalesReportGraph
                 if (substr($filter, $i, 1) === '1') {
                     $tmp1 .= '1';
                     if (strlen($tmp) === 0) {
-                        $tmp = "o.orders_status <> " . $this->status_available[$i]['index'];
+                        $tmp = "o.orders_status <> " . $this->status_available[$i]['id'];
                     } else {
-                        $tmp .= " and o.orders_status <> " . $this->status_available[$i]['index'];
+                        $tmp .= " and o.orders_status <> " . $this->status_available[$i]['id'];
                     }
                 } else {
                     $tmp1 .= '0';
