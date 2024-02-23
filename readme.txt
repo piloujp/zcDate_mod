@@ -5,7 +5,7 @@ But to keep backward compatibility, zcDate class has been modified to accept and
 Install:
 --------
 As always backup your cart first.
-If you have a fresh Zen Cart v1.5.8a installed then copy all files respecting folder structure. Don't forget to rename 'YOUR_ADMIN' before.
+If you have a fresh Zen Cart v2.0.0 or above installed, then copy all files respecting folder structure. Don't forget to rename 'YOUR_ADMIN' before.
 If not, you have to merge them using a file merging tool.
 
 Files list:
@@ -13,9 +13,11 @@ Files list:
 'YOUR_ADMIN/banner_statistics.php'
 'YOUR_ADMIN/includes/classes/stats_sales_report_graph.php'
 'YOUR_ADMIN/includes/functions/functions_banner_graphs.php'
+'YOUR_ADMIN/includes/languages/lang.english.php'
 'YOUR_ADMIN/includes/modules/dashboard_widgets/TrafficDashboardWidget.php'
 'includes/classes/zcDate.php'
 'includes/classes/traits/NotifierManager.php'
+'includes/languages/lang.english.php'
 'includes/modules/new_products.php'
 'includes/modules/specials_index.php'
 'includes/modules/payment/authorizenet.php'

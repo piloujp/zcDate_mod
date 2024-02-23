@@ -8,14 +8,17 @@ class zcDate extends base
 {
     protected
         $useIntlDate = false,
-        $isStrftime = false,
-        $locale,
-        $strftime2date,
-        $strftime2intl,
+        $useStrftime = false,
+        $locale,                //- Only used when $this->useIntlDate is true
+        $strftime2date,         //- Only used when $this->useStrftime is false
+        $strftime2intl,         //- Only used when $this->useStrftime is false
         $debug = false,
         $dateObject;
 
     // -----
+    // Initial construction; initializes the conversion arrays and determines which PHP
+    // base function will be used by the output method.
+    //
     // The $zen_date_debug is a "soft" configuration setting that can be forced (defaults to false)
     // via the site's /includes/extra_datafiles/site_specific_overrides.php
     //
@@ -26,17 +29,28 @@ class zcDate extends base
         if (isset($zen_date_debug) && $zen_date_debug === true) {
             $this->debug = true;
         }
+
+        if (version_compare(phpversion(), '8.1', '<')) {
+            $this->useStrftime = true;
+        } else {
+            if (function_exists('datefmt_create')) {
+                $this->useIntlDate = true;
+            }
+//            $this->initializeConversionArrays();
+        }
         $this->debug('zcDate construction: ' . PHP_EOL . var_export($this, true));
-		
-		// Test if object 'IntlDateFormatter' exists (through function datefmt_create). It is part of PHP extension 'intl'
-		// and can be easily disabled. In this case PHP 'Date()' will be used although internationalization is very limited.
-		// With 'IntlDateFormatter' object a full support for international dates and calendars is achieved.
-		if (function_exists('datefmt_create')) {
-            $this->useIntlDate = true;
-		}
     }
 
-    protected function initializeStrftimeConversionArrays()
+    // -----
+    // Initializes the class-based arrays that define the format conversions
+    // from their strftime format (the input requirement) and the formats used
+    // by either the 'date' function or the IntlDateFormatter class.
+    //
+    // Each array's keys start out as the strftime format and a key's value is the converted format.
+    // These arrays are then converted into a 'from' and a 'to' array that's used by the
+    // method convertFormat's processing (essentially a str_replace on the submitted format string).
+    //
+    protected function initializeConversionArrays()
     {
         if ($this->useIntlDate === true) {
             // -----
@@ -78,6 +92,8 @@ class zcDate extends base
                 '%X' => $time_short,
                 '%y' => 'yy',
                 '%Y' => 'y',
+				'%z' => 'ZZZZ',
+				'%Z' => 'ZZZZ',
             ];
             $this->strftime2intl = [
                 'from' => array_keys($strftime2intl),
@@ -99,6 +115,8 @@ class zcDate extends base
 				'%X' => 'H:i:s',
 				'%y' => 'y',
 				'%Y' => 'Y',
+				'%z' => 'ZZZZ',
+				'%Z' => 'ZZZZ',
 			];
 			$this->strftime2date = [
 				'from' => array_keys($strftime2date),
@@ -135,14 +153,14 @@ class zcDate extends base
             $timestamp = time();
         }
 		
-		if (preg_match('/%\w/', $format) == 1) { // Test if deprecated strftime parameters are used.
-			$this->isStrftime = true;
-			$this->initializeStrftimeConversionArrays();
+		if (preg_match('/%\w/', $format) == 1) { // Test if strftime parameters are used.
+			$this->useStrftime = true;
+			$this->initializeConversionArrays();
 		}
 		
 		if ($this->useIntlDate === true) { // Check for presence of PHP extension 'intl'.
 			$this->locale = setlocale(LC_TIME, 0);
-			if ($this->isStrftime === false) {
+			if ($this->useStrftime === false) {
 				$converted_format = $format;
 			} else {
 				$converted_format = str_replace($this->strftime2intl['from'], $this->strftime2intl['to'], $format);
@@ -160,7 +178,7 @@ class zcDate extends base
                 trigger_error(sprintf("Formatting error using '%s': %s (%d)", $format, $this->dateObject->getErrorMessage(), $this->dateObject->getErrorCode()), E_USER_WARNING);
             }
 		} else { // Uses Date() when 'intl' extension is not compiled/activated in PHP.
-			if ($this->isStrftime === false) {
+			if ($this->useStrftime === false) {
 				$converted_format = $this->convertFormat($format);
 			} else {
 				$converted_format = str_replace($this->strftime2date['from'], $this->strftime2date['to'], $format);
