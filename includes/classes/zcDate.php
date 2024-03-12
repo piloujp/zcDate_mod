@@ -2,16 +2,17 @@
 /**
  * @copyright Copyright 2003-2024 Zen Cart Development Team
  * @license http://www.zen-cart.com/license/2_0.txt GNU Public License V2.0
- * @version $Id: Pilou2-PilouJP 2024 Feb 14 Modified in v2.0.0-alpha1 $
+ * @version $Id: Pilou2-PilouJP 2024 Mar 3 Modified in v2.0.0-beta1 $
  */
 class zcDate extends base
 {
     protected
         $useIntlDate = false,
         $useStrftime = false,
-        $locale,                //- Only used when $this->useIntlDate is true
-        $strftime2date,         //- Only used when $this->useStrftime is false
-        $strftime2intl,         //- Only used when $this->useStrftime is false
+		$isStrftime = false,
+        $locale,
+        $strftime2date,
+        $strftime2intl,
         $debug = false,
         $dateObject;
 
@@ -36,7 +37,6 @@ class zcDate extends base
             if (function_exists('datefmt_create')) {
                 $this->useIntlDate = true;
             }
-//            $this->initializeConversionArrays();
         }
         $this->debug('zcDate construction: ' . PHP_EOL . var_export($this, true));
     }
@@ -50,7 +50,7 @@ class zcDate extends base
     // These arrays are then converted into a 'from' and a 'to' array that's used by the
     // method convertFormat's processing (essentially a str_replace on the submitted format string).
     //
-    protected function initializeConversionArrays()
+    protected function initializeConversionFromStrftimeArrays()
     {
         if ($this->useIntlDate === true) {
             // -----
@@ -142,10 +142,11 @@ class zcDate extends base
     /**
      * @param string $format  output method should start with a intlDate-format string
      * @param int    $timestamp
+     * @param string|null $calendar_locale Optional calendar-related locale. eg: 'ja_JP@calendar=japanese'
      *
      * @return false|string
      */
-    public function output(string $format, int $timestamp = 0)
+    public function output(string $format, int $timestamp = 0, ?string $calendar_locale = null)
     {
         $converted_format = '';
 		
@@ -154,36 +155,51 @@ class zcDate extends base
         }
 		
 		if (preg_match('/%\w/', $format) == 1) { // Test if strftime parameters are used.
-			$this->useStrftime = true;
-			$this->initializeConversionArrays();
+			$this->isStrftime = true;
+			$this->initializeConversionFromStrftimeArrays();
 		}
 		
 		if ($this->useIntlDate === true) { // Check for presence of PHP extension 'intl'.
 			$this->locale = setlocale(LC_TIME, 0);
-			if ($this->useStrftime === false) {
+			if ($this->isStrftime === false) {
 				$converted_format = $format;
 			} else {
 				$converted_format = str_replace($this->strftime2intl['from'], $this->strftime2intl['to'], $format);
 			}
+
+            $calendar = IntlDateFormatter::GREGORIAN;
+            if (!empty($calendar_locale)) {
+                $calendar = IntlCalendar::createInstance(null, $calendar_locale);
+            }
+
 			$this->dateObject = datefmt_create(
                 $this->locale,
                 IntlDateFormatter::FULL,
                 IntlDateFormatter::FULL,
                 date_default_timezone_get(),
-                IntlDateFormatter::GREGORIAN,
+                $calendar,
                 $converted_format
             );
             $output = $this->dateObject->format($timestamp);
             if ($output === false) {
-                trigger_error(sprintf("Formatting error using '%s': %s (%d)", $format, $this->dateObject->getErrorMessage(), $this->dateObject->getErrorCode()), E_USER_WARNING);
+                trigger_error(sprintf("Formatting error using '%s': %s (%d)", $converted_format, $this->dateObject->getErrorMessage(), $this->dateObject->getErrorCode()), E_USER_WARNING);
             }
-		} else { // Uses Date() when 'intl' extension is not compiled/activated in PHP.
-			if ($this->useStrftime === false) {
-				$converted_format = $this->convertFormat($format);
+		} else { // Uses Date() or strftime() when 'intl' extension is not compiled/activated in PHP.
+			if ($this->useStrftime === true) {
+				if ($this->isStrftime === true) {
+					$converted_format = $format;
+				} else {
+					$converted_format = $this->replace_to_strf_format($format);
+				}
+				$output = strftime($converted_format, $timestamp);
 			} else {
-				$converted_format = str_replace($this->strftime2date['from'], $this->strftime2date['to'], $format);
+				if ($this->isStrftime === false) {
+					$converted_format = $this->convertFormat($format);
+				} else {
+					$converted_format = str_replace($this->strftime2date['from'], $this->strftime2date['to'], $format);
+				}
+				$output = date($converted_format, $timestamp);
 			}
-			$output = date($converted_format, $timestamp);
 		}
 
         $additional_message = ($format === $converted_format) ? '' : ", with format converted to '$converted_format'";
@@ -216,7 +232,7 @@ class zcDate extends base
 			$multistring = preg_split('/\'[^\']*\'/', $format); // split strings to convert
 			$j = 0;
 			foreach ($multistring as $chaine) {
-				$convstring[$j] = $this->replace_format($chaine); // and populate array with these strings converted
+				$convstring[$j] = $this->replace_to_intl_format($chaine); // and populate array with these strings converted
 				$j++;
 			}
 			if ($first === 0) { // begin to rebuilt final string
@@ -229,11 +245,11 @@ class zcDate extends base
 			}
 			return $result;
 		} else {
-			return $this->replace_format($format); // if no constannt string
+			return $this->replace_to_intl_format($format); // if no constannt string
 		}
     }
 
-	protected function replace_format(string $chaine)
+	protected function replace_to_intl_format(string $chaine)
 	{
 		$intl2date = [ // Intermedaite codes have been randomely generated from characters list excluding those used as parameter for IntlDate object.
 			'EEEE' => 'l',
@@ -272,6 +288,80 @@ class zcDate extends base
 			'cx@T' => 'H',
 			'q0qB' => 'Y',
 			'R#P#' => 'y',
+		];
+
+		$inter2date = [
+			'from' => array_keys($inter2date),
+			'to' => array_values($inter2date)
+		];
+
+		$uniq_pat = @[]; // Array to keep track of unique patterns to convert even if they have multiple occurrence.
+
+		foreach ($intl2date as $letpat => $letconv) {
+			$firstlet = substr($letpat, 0, 1); // Retrieve first letter of each so regular expression can identify all possible paterns using this letter code.
+			if (in_array($firstlet, $uniq_pat, true) == false) { // Only one time for each letter code.
+				$uniq_pat[] .= $firstlet;
+				$pregpat = '/(?<!' . $firstlet . ')' . $firstlet . '+(?!' . $firstlet . ')/';
+				preg_match_all($pregpat, $chaine, $matches, PREG_SET_ORDER);
+				$finded = @[];
+				$i =0;
+				if (!empty($matches)) {
+					foreach ($matches as $val) { // Go through all occurrences/patterns of a letter code
+							if ((in_array($val[0], $finded, true) == false) AND !empty($intl2date[$val[0]])) { // and if they have an equivalent in Date function format,
+								$finded[$i] = $val[0]; // keeping track of already treated patterns
+								$pattern = '/(?<!' . $firstlet . ')' . $val[0] . '(?!' . $firstlet . ')/';
+								$result = preg_replace($pattern, $intl2date[$val[0]],$chaine);             // replace them
+								$chaine = $result;
+							}
+							$i++;
+					}
+				}
+			}
+		}
+		// Final conversion and result output. This method can be used because all inter2date keys are uniques and not contained in other keys. This is not the case with intl2date.
+		$final_format = str_replace($inter2date['from'], $inter2date['to'], $chaine);
+		return $final_format;
+	}
+
+	protected function replace_to_strf_format(string $chaine)
+	{
+		$intl2date = [ // Intermedaite codes have been randomely generated from characters list excluding those used as parameter for IntlDate object.
+			'EEEE' => '%A',
+			'E' => 'c6wv',
+			'MMMM' => '%B',
+			'MMM' => 'QQxA',
+			'MM' => 'JNtf',
+			'M' => '%m',
+			'w' => '%V',
+			'dd' => 'TVX9',
+			'd' => '%e',
+			'D' => 'KVA9',
+			'hh' => 'cUu0',
+			'h' => '%l',
+			'HH' => 'cx@T',
+			'H' => '%k',
+			'mm' => '%M',
+			'm' => '%M',
+			'ss' => '%S',
+			'yyyy' => 'q0qB',
+			'yyy' => 'q0qB',
+			'yy' => 'R#P#',
+			'y' => 'q0qB',
+			'Y' => '%g',
+			'zzzz' => '%Z',
+			'ZZZZ' => '%z',
+		];
+
+		$inter2date = [
+			'c6wv' => '%a',
+			'JNtf' => '%m',
+			'QQxA' => '%b',
+			'TVX9' => '%d',
+			'KVA9' => '%j',
+			'cUu0' => '%I',
+			'cx@T' => '%H',
+			'q0qB' => '%Y',
+			'R#P#' => '%y',
 		];
 
 		$inter2date = [

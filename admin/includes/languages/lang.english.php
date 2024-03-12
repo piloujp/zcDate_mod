@@ -3,7 +3,7 @@
  * @copyright Copyright 2003-2024 Zen Cart Development Team
  * @copyright Portions Copyright 2003 osCommerce
  * @license http://www.zen-cart.com/license/2_0.txt GNU Public License V2.0
- * @version $Id: pilouJP 2024 Feb 20 Modified in v2.0.0-alpha1 $
+ * @version $Id: pilouJP 2024 Mar 3 Modified in v2.0.0-beta1 $
 */
 
 @setlocale(LC_TIME, ['en_US', 'en_US.utf8', 'en', 'English_United States.1252']);
@@ -75,6 +75,7 @@ $define = [
     'BOX_CONFIGURATION_STOCK' => 'Stock',
     'BOX_CONFIGURATION_WEBSITE_MAINTENANCE' => 'Website Maintenance',
     'BOX_COUPON_ADMIN' => 'Coupon Admin',
+    'BOX_COUPON_REFERRERS' => 'Coupon Referrers',
     'BOX_COUPON_RESTRICT' => 'Coupon Restrictions',
     'BOX_CUSTOMERS_CUSTOMERS' => 'Customers',
     'BOX_CUSTOMERS_CUSTOMER_GROUPS' => 'Customer Groups',
@@ -583,10 +584,10 @@ $define = [
     'TEXT_SALEMAKER_IMMEDIATELY' => 'Immediately',
     'TEXT_SALEMAKER_NEVER' => 'Never',
     'TEXT_SET_DEFAULT' => 'Set as default',
-    'TEXT_SHIPPING_lbs' => '(lbs)',
-    'TEXT_SHIPPING_kgs' => '(kgs)',
-    'TEXT_SHIPPING_inches' => '(inches)',
-    'TEXT_SHIPPING_centimeters' => '(cm)',
+    'TEXT_SHIPPING_LBS' => '(lbs)',
+    'TEXT_SHIPPING_KGS' => '(kgs)',
+    'TEXT_SHIPPING_INCHES' => '(inches)',
+    'TEXT_SHIPPING_CENTIMETERS' => '(cm)',
     'TEXT_SHOW_GV_QUEUE' => '%s waiting approval ',
     'TEXT_SHOW_OPTION_NAMES_VALUES_COPIER_OFF' => 'Display Global Features - OFF',
     'TEXT_SHOW_OPTION_NAMES_VALUES_COPIER_ON' => 'Display Global Features - ON',
