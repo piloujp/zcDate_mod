@@ -2,7 +2,7 @@
 /**
  * @copyright Copyright 2003-2024 Zen Cart Development Team
  * @license http://www.zen-cart.com/license/2_0.txt GNU Public License V2.0
- * @version $Id: Pilou2-PilouJP 2024 Mar 3 Modified in v2.0.0-beta1 $
+ * @version $Id: Pilou2-PilouJP 2024 Mar 3 Modified in v2.0.1 $
  */
 class zcDate extends base
 {
@@ -84,6 +84,7 @@ class zcDate extends base
                 '%B' => 'MMMM',
                 '%d' => 'dd',
                 '%H' => 'HH',
+                '%k' => 'H',
                 '%m' => 'MM',
                 '%M' => 'mm',
                 '%S' => 'ss',
@@ -107,6 +108,7 @@ class zcDate extends base
 				'%B' => 'F',
 				'%d' => 'd',
 				'%H' => 'H',
+				'%k' => 'G',
 				'%m' => 'm',
 				'%M' => 'i',
 				'%S' => 's',
