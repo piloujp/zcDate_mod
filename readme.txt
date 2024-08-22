@@ -1,6 +1,7 @@
-After strftime has bee deprecated, date_format was used but it does not provide much internationalization. This mod uses international date object instead which is compatible with any language.
+After strftime has been deprecated, date_format was used but it does not provide much internationalization. This mod uses international date object instead which is compatible with any language.
+Now, recent versions of Zen Cart although use international date object, which means this mod is not required anymore for internationalization.
 Although strftime is not used anymore in Zen Cart, its parameter system is still there (%something). They are all replaced in this mod by the international date formatter ones (see links below) which is more efficient as no conversion is needed.
-But to keep backward compatibility, zcDate class has been modified to accept and convert old parameters to new system. Even if you use old plugins or files it will still work.
+But to keep backward compatibility, zcDate class has been modified to accept and convert old parameters to new system. Even if you use old plugins or files, it will still work.
 
 Install:
 --------

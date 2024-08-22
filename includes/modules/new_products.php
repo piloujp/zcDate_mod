@@ -5,7 +5,7 @@
  * @copyright Copyright 2003-2024 Zen Cart Development Team
  * @copyright Portions Copyright 2003 osCommerce
  * @license http://www.zen-cart.com/license/2_0.txt GNU Public License V2.0
- * @version $Id: lat9 2024 Feb 24 Modified in v2.0.0-beta1 $
+ * @version $Id: DrByte 2024 Apr 03 Modified in v2.1.0-alpha1 $
  */
 if (!defined('IS_ADMIN_FLAG')) {
     die('Illegal Access');
@@ -98,7 +98,7 @@ if ($num_products_count > 0) {
 
     if (!empty($current_category_id)) {
         $category_title = zen_get_category_name((int)$current_category_id);
-        $title = '<h2 class="centerBoxHeading">' . sprintf(TABLE_HEADING_NEW_PRODUCTS, $zcDate->output('MMMM')) . ($category_title != '' ? ' - ' . $category_title : '' ) . '</h2>';
+        $title = '<h2 class="centerBoxHeading">' . sprintf(TABLE_HEADING_NEW_PRODUCTS, $zcDate->output('MMMM')) . ($category_title !== '' ? ' - ' . $category_title : '' ) . '</h2>';
     } else {
         $title = '<h2 class="centerBoxHeading">' . sprintf(TABLE_HEADING_NEW_PRODUCTS, $zcDate->output('MMMM')) . '</h2>';
     }
