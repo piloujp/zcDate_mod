@@ -93,8 +93,8 @@ class zcDate extends base
                 '%X' => $time_short,
                 '%y' => 'yy',
                 '%Y' => 'y',
-				'%z' => 'ZZZZ',
-				'%Z' => 'ZZZZ',
+				'%z' => 'xx',
+				'%Z' => 'v',
             ];
             $this->strftime2intl = [
                 'from' => array_keys($strftime2intl),
@@ -117,8 +117,8 @@ class zcDate extends base
 				'%X' => 'H:i:s',
 				'%y' => 'y',
 				'%Y' => 'Y',
-				'%z' => 'ZZZZ',
-				'%Z' => 'ZZZZ',
+				'%z' => 'O',
+				'%Z' => 'T',
 			];
 			$this->strftime2date = [
 				'from' => array_keys($strftime2date),
@@ -205,7 +205,7 @@ class zcDate extends base
 		}
 
         $additional_message = ($format === $converted_format) ? '' : ", with format converted to '$converted_format'";
-        $this->debug("zcDate output for '$format' with timestamp ($timestamp): '" . json_encode($output) . "'");
+        $this->debug("zcDate output for '$format' with timestamp ($timestamp)" . $additional_message . ": '" . json_encode($output) . "'");
 
         return $output;
     }
@@ -234,7 +234,7 @@ class zcDate extends base
 			$multistring = preg_split('/\'[^\']*\'/', $format); // split strings to convert
 			$j = 0;
 			foreach ($multistring as $chaine) {
-				$convstring[$j] = $this->replace_to_intl_format($chaine); // and populate array with these strings converted
+				$convstring[$j] = $this->replace_to_date_format($chaine); // and populate array with these strings converted
 				$j++;
 			}
 			if ($first === 0) { // begin to rebuilt final string
@@ -247,13 +247,13 @@ class zcDate extends base
 			}
 			return $result;
 		} else {
-			return $this->replace_to_intl_format($format); // if no constannt string
+			return $this->replace_to_date_format($format); // if no constannt string
 		}
     }
 
-	protected function replace_to_intl_format(string $chaine)
+	protected function replace_to_date_format(string $chaine)
 	{
-		$intl2date = [ // Intermedaite codes have been randomely generated from characters list excluding those used as parameter for IntlDate object.
+		$intl2date = [ // Intermediate codes have been randomely generated from characters list excluding those used as parameter for IntlDate object.
 			'EEEE' => 'l',
 			'E' => 'c6wv',
 			'MMMM' => 'F',
@@ -276,8 +276,10 @@ class zcDate extends base
 			'yy' => 'R#P#',
 			'y' => 'q0qB',
 			'Y' => 'o',
-			'zzzz' => 'e',
-			'ZZZZ' => 'P',
+			'xx' => 'O',
+			'v' => 'T',
+			'ZZZZ' => 'eP',
+			'zzzz' => 'T',
 		];
 
 		$inter2date = [
@@ -327,7 +329,7 @@ class zcDate extends base
 
 	protected function replace_to_strf_format(string $chaine)
 	{
-		$intl2date = [ // Intermedaite codes have been randomely generated from characters list excluding those used as parameter for IntlDate object.
+		$intl2strf = [ // Intermedaite codes have been randomely generated from characters list excluding those used as parameter for IntlDate object.
 			'EEEE' => '%A',
 			'E' => 'c6wv',
 			'MMMM' => '%B',
@@ -350,11 +352,13 @@ class zcDate extends base
 			'yy' => 'R#P#',
 			'y' => 'q0qB',
 			'Y' => '%g',
+			'v' => '%Z',
+			'xx' => '%z',
 			'zzzz' => '%Z',
 			'ZZZZ' => '%z',
 		];
 
-		$inter2date = [
+		$inter2strf = [
 			'c6wv' => '%a',
 			'JNtf' => '%m',
 			'QQxA' => '%b',
@@ -366,14 +370,14 @@ class zcDate extends base
 			'R#P#' => '%y',
 		];
 
-		$inter2date = [
-			'from' => array_keys($inter2date),
-			'to' => array_values($inter2date)
+		$inter2strf = [
+			'from' => array_keys($inter2strf),
+			'to' => array_values($inter2strf)
 		];
 
 		$uniq_pat = @[]; // Array to keep track of unique patterns to convert even if they have multiple occurrence.
 
-		foreach ($intl2date as $letpat => $letconv) {
+		foreach ($intl2strf as $letpat => $letconv) {
 			$firstlet = substr($letpat, 0, 1); // Retrieve first letter of each so regular expression can identify all possible paterns using this letter code.
 			if (in_array($firstlet, $uniq_pat, true) == false) { // Only one time for each letter code.
 				$uniq_pat[] .= $firstlet;
@@ -383,10 +387,10 @@ class zcDate extends base
 				$i =0;
 				if (!empty($matches)) {
 					foreach ($matches as $val) { // Go through all occurrences/patterns of a letter code
-							if ((in_array($val[0], $finded, true) == false) AND !empty($intl2date[$val[0]])) { // and if they have an equivalent in Date function format,
+							if ((in_array($val[0], $finded, true) == false) AND !empty($intl2strf[$val[0]])) { // and if they have an equivalent in Date function format,
 								$finded[$i] = $val[0]; // keeping track of already treated patterns
 								$pattern = '/(?<!' . $firstlet . ')' . $val[0] . '(?!' . $firstlet . ')/';
-								$result = preg_replace($pattern, $intl2date[$val[0]],$chaine);             // replace them
+								$result = preg_replace($pattern, $intl2strf[$val[0]],$chaine);             // replace them
 								$chaine = $result;
 							}
 							$i++;
@@ -394,8 +398,8 @@ class zcDate extends base
 				}
 			}
 		}
-		// Final conversion and result output. This method can be used because all inter2date keys are uniques and not contained in other keys. This is not the case with intl2date.
-		$final_format = str_replace($inter2date['from'], $inter2date['to'], $chaine);
+		// Final conversion and result output. This method can be used because all inter2strf keys are uniques and not contained in other keys. This is not the case with intl2strf.
+		$final_format = str_replace($inter2strf['from'], $inter2strf['to'], $chaine);
 		return $final_format;
 	}
 
