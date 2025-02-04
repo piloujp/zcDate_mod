@@ -18,6 +18,7 @@ Files list:
 'YOUR_ADMIN/includes/modules/dashboard_widgets/TrafficDashboardWidget.php'
 'includes/classes/zcDate.php'
 'includes/classes/traits/NotifierManager.php'
+'includes/functions/functions_dates.php'
 'includes/languages/lang.english.php'
 'includes/modules/new_products.php'
 'includes/modules/specials_index.php'
