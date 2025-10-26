@@ -3,6 +3,7 @@
  * @copyright Copyright 2003-2024 Zen Cart Development Team
  * @license http://www.zen-cart.com/license/2_0.txt GNU Public License V2.0
  * @version $Id: Pilou2-PilouJP 2024 Mar 3 Modified in v2.0.1 $
+ * @since ZC v1.5.8
  */
 class zcDate extends base
 {
@@ -50,6 +51,13 @@ class zcDate extends base
     // These arrays are then converted into a 'from' and a 'to' array that's used by the
     // method convertFormat's processing (essentially a str_replace on the submitted format string).
     //
+    // strftime reference: https://www.php.net/manual/en/function.strftime.php
+    // date_format reference: https://www.php.net/manual/en/datetime.format.php
+    // intl format reference: https://unicode-org.github.io/icu/userguide/format_parse/datetime/#datetime-format-syntax
+    //
+    /**
+     * @since ZC v1.5.8
+     */
     protected function initializeConversionFromStrftimeArrays()
     {
         if ($this->useIntlDate === true) {
@@ -57,7 +65,7 @@ class zcDate extends base
             // First, save the current locale; it's set by the main language file's (presumed) call to the
             // setlocale function.
             //
-            $this->locale = setlocale(LC_TIME, 0);
+            $this->locale = setlocale(LC_TIME, '0');
 
             // -----
             // Using the current locale, retrieve the locale-specific 'short' date and time
@@ -131,11 +139,17 @@ class zcDate extends base
     // A couple of public functions to control whether or not the class' debug
     // processing is to be enabled or disabled.
     //
+    /**
+     * @since ZC v1.5.8
+     */
     public function enableDebug()
     {
         $this->debug = true;
         $this->debug('Debug enabled: ' . PHP_EOL . var_export($this, true));
     }
+    /**
+     * @since ZC v1.5.8
+     */
     public function disableDebug()
     {
         $this->debug = false;
@@ -147,6 +161,7 @@ class zcDate extends base
      * @param string|null $calendar_locale Optional calendar-related locale. eg: 'ja_JP@calendar=japanese'
      *
      * @return false|string
+     * @since ZC v1.5.8
      */
     public function output(string $format, int $timestamp = 0, ?string $calendar_locale = null)
     {
@@ -162,7 +177,7 @@ class zcDate extends base
         }
 
         if ($this->useIntlDate === true) { // Check for presence of PHP extension 'intl'.
-            $this->locale = setlocale(LC_TIME, 0);
+            $this->locale = setlocale(LC_TIME, '0');
             if ($this->isStrftime === false) {
                 $converted_format = $format;
             } else {
@@ -220,6 +235,9 @@ class zcDate extends base
     // This array is then finaly converted into a 'from' and a 'to' array that's used by a str_replace on the submitted
     // (partly converted) format string.
     //
+    /**
+     * @since ZC v1.5.8
+     */
     protected function convertFormat(string $format)
     {
         if (preg_match_all('/\'[^\']*\'/', $format, $multichaine, PREG_OFFSET_CAPTURE)) { // check for string inside single quotes which should not be converted
@@ -403,6 +421,9 @@ class zcDate extends base
         return $final_format;
     }
 
+    /**
+     * @since ZC v1.5.8
+     */
     protected function debug(string $message)
     {
         if ($this->debug === true) {
