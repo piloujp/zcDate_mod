@@ -422,6 +422,19 @@ class zcDate extends base
     }
 
     /**
+     * @param string $date  The date to be validated, according to the same rules as strtotime.
+     *
+     * @return bool  Indicates whether/not the supplied date is valid
+     * @since ZC v2.0.0
+     */
+    public static function validateDate(string $date): bool
+    {
+        ['year' => $year, 'month' => $month, 'day' => $day, 'warning_count' => $warning_count, 'error_count' => $error_count] = date_parse($date);
+
+        return ($year !== false && $month !== false && $day !== false && (($warning_count + $error_count) === 0));
+    }
+
+    /**
      * @since ZC v1.5.8
      */
     protected function debug(string $message)
