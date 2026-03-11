@@ -2,7 +2,7 @@
 /**
  * @copyright Copyright 2003-2025 Zen Cart Development Team
  * @license http://www.zen-cart.com/license/2_0.txt GNU Public License V2.0
- * @version $Id: Pilou2-PilouJP 2026 Mar 11 Modified in v2.2.0 $
+ * @version $Id: Pilou2-PilouJP 2026 Mar 10 Modified in v2.2.0 $
  * @since ZC v1.5.8
  */
 class zcDate extends base
