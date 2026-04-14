@@ -2,14 +2,13 @@
 /**
  * @copyright Copyright 2003-2025 Zen Cart Development Team
  * @license http://www.zen-cart.com/license/2_0.txt GNU Public License V2.0
- * @version $Id: Pilou2-PilouJP 2026 Mar 10 Modified in v2.2.0 $
+ * @version $Id: Pilou2-PilouJP 2026 Apr 15 Modified in v3.0.0-dev $
  * @since ZC v1.5.8
  */
 class zcDate extends base
 {
     protected
         $useIntlDate = false,
-        $useStrftime = false,
         $isStrftime = false,
         $locale,
         $strftime2date,
@@ -32,13 +31,10 @@ class zcDate extends base
             $this->debug = true;
         }
 
-        if (version_compare(phpversion(), '8.1', '<')) {
-            $this->useStrftime = true;
-        } else {
-            if (function_exists('datefmt_create')) {
-                $this->useIntlDate = true;
-            }
+        if (function_exists('datefmt_create')) {
+            $this->useIntlDate = true;
         }
+
         $this->debug('zcDate construction: ' . PHP_EOL . var_export($this, true));
     }
 
@@ -53,7 +49,7 @@ class zcDate extends base
     //
     // strftime reference: https://www.php.net/manual/en/function.strftime.php
     // date_format reference: https://www.php.net/manual/en/datetime.format.php
-    // intl format reference: https://unicode-org.github.io/icu/userguide/format_parse/datetime/#datetime-format-syntax
+    // intl format reference: https://www.unicode.org/reports/tr35/tr35-dates.html#Date_Field_Symbol_Table
     //
     /**
      * @since ZC v1.5.8
@@ -201,22 +197,13 @@ class zcDate extends base
             if ($output === false) {
                 trigger_error(sprintf("Formatting error using '%s': %s (%d)", $converted_format, $this->dateObject->getErrorMessage(), $this->dateObject->getErrorCode()), E_USER_WARNING);
             }
-        } else { // Uses Date() or strftime() when 'intl' extension is not compiled/activated in PHP.
-            if ($this->useStrftime === true) {
-                if ($this->isStrftime === true) {
-                    $converted_format = $format;
-                } else {
-                    $converted_format = $this->replace_to_strf_format($format);
-                }
-                $output = strftime($converted_format, $timestamp);
+        } else { // Uses Date() when 'intl' extension is not compiled/activated in PHP.
+            if ($this->isStrftime === false) {
+                $converted_format = $this->convertFormat($format);
             } else {
-                if ($this->isStrftime === false) {
-                    $converted_format = $this->convertFormat($format);
-                } else {
-                    $converted_format = str_replace($this->strftime2date['from'], $this->strftime2date['to'], $format);
-                }
-                $output = date($converted_format, $timestamp);
+                $converted_format = str_replace($this->strftime2date['from'], $this->strftime2date['to'], $format);
             }
+            $output = date($converted_format, $timestamp);
         }
 
         $additional_message = ($format === $converted_format) ? '' : ", with format converted to '$converted_format'";
@@ -252,7 +239,7 @@ class zcDate extends base
             $multistring = preg_split('/\'[^\']*\'/', $format); // split strings to convert
             $j = 0;
             foreach ($multistring as $chaine) {
-                $convstring[$j] = $this->replace_to_date_format($chaine); // and populate array with these strings converted
+                $convstring[$j] = $this->convert_intl_to_date_format($chaine); // and populate array with these strings converted
                 $j++;
             }
             if ($first === 0) { // begin to rebuilt final string
@@ -265,11 +252,11 @@ class zcDate extends base
             }
             return $result;
         } else {
-            return $this->replace_to_date_format($format); // if no constannt string
+            return $this->convert_intl_to_date_format($format); // if no constannt string
         }
     }
 
-    protected function replace_to_date_format(string $chaine)
+    protected function convert_intl_to_date_format(string $chaine)
     {
         $intl2date = [ // Intermediate codes have been randomely generated from characters list excluding those used as parameter for IntlDate object.
             'EEEE' => 'l',
@@ -342,82 +329,6 @@ class zcDate extends base
         }
         // Final conversion and result output. This method can be used because all inter2date keys are uniques and not contained in other keys. This is not the case with intl2date.
         $final_format = str_replace($inter2date['from'], $inter2date['to'], $chaine);
-        return $final_format;
-    }
-
-    protected function replace_to_strf_format(string $chaine)
-    {
-        $intl2strf = [ // Intermedaite codes have been randomely generated from characters list excluding those used as parameter for IntlDate object.
-            'EEEE' => '%A',
-            'E' => 'c6wv',
-            'MMMM' => '%B',
-            'MMM' => 'QQxA',
-            'MM' => 'JNtf',
-            'M' => '%m',
-            'w' => '%V',
-            'dd' => 'TVX9',
-            'd' => '%e',
-            'D' => 'KVA9',
-            'hh' => 'cUu0',
-            'h' => '%l',
-            'HH' => 'cx@T',
-            'H' => '%k',
-            'mm' => '%M',
-            'm' => '%M',
-            'ss' => '%S',
-            'yyyy' => 'q0qB',
-            'yyy' => 'q0qB',
-            'yy' => 'R#P#',
-            'y' => 'q0qB',
-            'Y' => '%g',
-            'v' => '%Z',
-            'xx' => '%z',
-            'zzzz' => '%Z',
-            'ZZZZ' => '%z',
-        ];
-
-        $inter2strf = [
-            'c6wv' => '%a',
-            'JNtf' => '%m',
-            'QQxA' => '%b',
-            'TVX9' => '%d',
-            'KVA9' => '%j',
-            'cUu0' => '%I',
-            'cx@T' => '%H',
-            'q0qB' => '%Y',
-            'R#P#' => '%y',
-        ];
-
-        $inter2strf = [
-            'from' => array_keys($inter2strf),
-            'to' => array_values($inter2strf)
-        ];
-
-        $uniq_pat = @[]; // Array to keep track of unique patterns to convert even if they have multiple occurrence.
-
-        foreach ($intl2strf as $letpat => $letconv) {
-            $firstlet = substr($letpat, 0, 1); // Retrieve first letter of each so regular expression can identify all possible paterns using this letter code.
-            if (in_array($firstlet, $uniq_pat, true) == false) { // Only one time for each letter code.
-                $uniq_pat[] .= $firstlet;
-                $pregpat = '/(?<!' . $firstlet . ')' . $firstlet . '+(?!' . $firstlet . ')/';
-                preg_match_all($pregpat, $chaine, $matches, PREG_SET_ORDER);
-                $finded = @[];
-                $i =0;
-                if (!empty($matches)) {
-                    foreach ($matches as $val) { // Go through all occurrences/patterns of a letter code
-                            if ((in_array($val[0], $finded, true) == false) AND !empty($intl2strf[$val[0]])) { // and if they have an equivalent in Date function format,
-                                $finded[$i] = $val[0]; // keeping track of already treated patterns
-                                $pattern = '/(?<!' . $firstlet . ')' . $val[0] . '(?!' . $firstlet . ')/';
-                                $result = preg_replace($pattern, $intl2strf[$val[0]],$chaine);             // replace them
-                                $chaine = $result;
-                            }
-                            $i++;
-                    }
-                }
-            }
-        }
-        // Final conversion and result output. This method can be used because all inter2strf keys are uniques and not contained in other keys. This is not the case with intl2strf.
-        $final_format = str_replace($inter2strf['from'], $inter2strf['to'], $chaine);
         return $final_format;
     }
 
