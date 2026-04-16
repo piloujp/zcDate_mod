@@ -167,7 +167,7 @@ class zcDate extends base
             $timestamp = time();
         }
 
-        if (preg_match('/%\w/', $format) == 1) { // Test if strftime parameters are used.
+        if (preg_match('/(?<!%)(?:%%)*%\K[a-zA-Z]/', $format) == 1) { // Test if strftime parameters are used.
             $this->isStrftime = true;
             $this->initializeConversionFromStrftimeArrays();
         }
@@ -252,7 +252,7 @@ class zcDate extends base
             }
             return $result;
         } else {
-            return $this->convert_intl_to_date_format($format); // if no constannt string
+            return $this->convert_intl_to_date_format($format); // if no constant string
         }
     }
 
