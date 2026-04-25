@@ -239,7 +239,7 @@ if (!empty($upperMenuOverrideArray) && is_array($upperMenuOverrideArray)) {
                                     <div id="versionCheckAlert"></div>
                                 </div>
                                 <div class="version-dropdown-footer" id="versionCheckFooter">
-                                    <?= TEXT_CURRENT_VER_IS . ' v' . PROJECT_VERSION_MAJOR . '.' . PROJECT_VERSION_MINOR . (PROJECT_VERSION_PATCH1 != '' ? 'p' . PROJECT_VERSION_PATCH1 : '') ?>
+                                    <?= TEXT_CURRENT_VER_IS . ' v' . PROJECT_VERSION_MAJOR . '.' . PROJECT_VERSION_MINOR ?>
                                 </div>
                             </li>
                         </ul>
@@ -291,7 +291,7 @@ if (!empty($upperMenuOverrideArray) && is_array($upperMenuOverrideArray)) {
                                 <span class="info-val"><?= $admin_host ?></span>
 
                                 <span class="info-label"><?= HEADER_TEXT_TIMEZONE ?></span>
-                                <span class="info-val"><?= $admin_time ?></span>
+                                <span class="info-val"><?= $admin_time ?></span><br>
                                 <span class="info-val"><?= $admin_tz ?></span>
 
                                 <span class="info-label"><?= HEADER_TEXT_LOCALE ?></span>
