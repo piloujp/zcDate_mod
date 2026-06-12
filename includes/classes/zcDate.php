@@ -7,14 +7,13 @@
  */
 class zcDate extends base
 {
-    protected
-        $useIntlDate = false,
-        $isStrftime = false,
-        $locale,
-        $strftime2date,
-        $strftime2intl,
-        $debug = false,
-        $dateObject;
+    protected $useIntlDate = false;
+    protected $isStrftime = false;
+    protected $locale;
+    protected $strftime2date;
+    protected $strftime2intl;
+    protected $debug = false;
+    protected $dateObject;
 
     // -----
     // Initial construction; initializes the conversion arrays and determines which PHP
@@ -34,7 +33,6 @@ class zcDate extends base
         if (function_exists('datefmt_create')) {
             $this->useIntlDate = true;
         }
-
         $this->debug('zcDate construction: ' . PHP_EOL . var_export($this, true));
     }
 
@@ -49,7 +47,8 @@ class zcDate extends base
     //
     // strftime reference: https://www.php.net/manual/en/function.strftime.php
     // date_format reference: https://www.php.net/manual/en/datetime.format.php
-    // intl format reference: https://www.unicode.org/reports/tr35/tr35-dates.html#Date_Field_Symbol_Table
+    // intl format reference: https://unicode-org.github.io/icu/userguide/format_parse/datetime/#datetime-format-syntax
+    // or: https://www.unicode.org/reports/tr35/tr35-dates.html#Date_Field_Symbol_Table
     //
     /**
      * @since ZC v1.5.8
@@ -102,7 +101,7 @@ class zcDate extends base
             ];
             $this->strftime2intl = [
                 'from' => array_keys($strftime2intl),
-                'to' => array_values($strftime2intl)
+                'to' => array_values($strftime2intl),
             ];
         } else {
             $strftime2date = [
@@ -126,7 +125,7 @@ class zcDate extends base
             ];
             $this->strftime2date = [
                 'from' => array_keys($strftime2date),
-                'to' => array_values($strftime2date)
+                'to' => array_values($strftime2date),
             ];
         }
     }
@@ -197,7 +196,8 @@ class zcDate extends base
             if ($output === false) {
                 trigger_error(sprintf("Formatting error using '%s': %s (%d)", $converted_format, $this->dateObject->getErrorMessage(), $this->dateObject->getErrorCode()), E_USER_WARNING);
             }
-        } else { // Uses Date() when 'intl' extension is not compiled/activated in PHP.
+        } else {
+            // Uses Date() when 'intl' extension is not compiled/activated in PHP.
             if ($this->isStrftime === false) {
                 $converted_format = $this->convertFormat($format);
             } else {
@@ -301,7 +301,7 @@ class zcDate extends base
 
         $inter2date = [
             'from' => array_keys($inter2date),
-            'to' => array_values($inter2date)
+            'to' => array_values($inter2date),
         ];
 
         $uniq_pat = @[]; // Array to keep track of unique patterns to convert even if they have multiple occurrence.
