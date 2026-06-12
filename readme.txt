@@ -6,8 +6,8 @@ But to keep backward compatibility, zcDate class has been modified to accept and
 Install:
 --------
 As always backup your cart first.
-If you have a fresh Zen Cart v2.0.0 or above installed, then copy all files respecting folder structure. Don't forget to rename 'YOUR_ADMIN' before.
-If not, you have to merge them using a file merging tool.
+If you have a fresh install of the latest Zen Cart (v2.0.0 or above), then copy all files respecting folder structure. Don't forget to rename 'YOUR_ADMIN' before.
+If not, or just to be safe, you have to merge them using a file merging tool.
 
 Files list:
 -----------
