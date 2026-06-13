@@ -1,27 +1,38 @@
 <?php
+
+declare(strict_types=1);
 /**
  * @copyright Copyright 2003-2025 Zen Cart Development Team
  * @license http://www.zen-cart.com/license/2_0.txt GNU Public License V2.0
- * @version $Id: Pilou2-PilouJP 2026 Apr 15 Modified in v3.0.0-dev $
+ * @version $Id: Pilou2-PilouJP 2026 Jun 14 Modified in v3.0.0-dev $
  * @since ZC v1.5.8
  */
 class zcDate extends base
 {
-    protected $useIntlDate = false;
-    protected $isStrftime = false;
-    protected $locale;
-    protected $strftime2date;
-    protected $strftime2intl;
-    protected $debug = false;
-    protected $dateObject;
+    protected bool $useIntlDate = false;
+    protected bool $isStrftime = false;
 
-    // -----
-    // Initial construction; initializes the conversion arrays and determines which PHP
-    // base function will be used by the output method.
-    //
-    // The $zen_date_debug is a "soft" configuration setting that can be forced (defaults to false)
-    // via the site's /includes/extra_datafiles/site_specific_overrides.php
-    //
+    protected string $locale = '0';
+    protected array $strftime2date = ['from' => [], 'to' => []];
+    protected array $strftime2intl = ['from' => [], 'to' => []];
+
+    protected bool $debug = false;
+
+    /** @var object|null */
+    protected ?object $dateObject = null;
+
+    /**
+     * Initializes the conversion arrays and determines which PHP
+     * base function will be used by the output method.
+     *
+     * 1. If PHP 8.1 or greater, use the IntlDateFormatter class.
+     * 2. If PHP 8.0 or greater, use the datefmt_create function.
+     * 3. Otherwise, use the strftime function.
+     *
+     * The $zen_date_debug is a "soft" configuration setting that can be forced (defaults to false)
+     * via the site's /includes/extra_datafiles/site_specific_overrides.php
+     *
+    */
     public function __construct()
     {
         global $zen_date_debug;
@@ -33,7 +44,7 @@ class zcDate extends base
         if (function_exists('datefmt_create')) {
             $this->useIntlDate = true;
         }
-        $this->debug('zcDate construction: ' . PHP_EOL . var_export($this, true));
+        $this->debug('zcDate construction: ' . \PHP_EOL . var_export($this, true));
     }
 
     // -----
@@ -53,14 +64,14 @@ class zcDate extends base
     /**
      * @since ZC v1.5.8
      */
-    protected function initializeConversionFromStrftimeArrays()
+    protected function initializeConversionFromStrftimeArrays(): void
     {
         if ($this->useIntlDate === true) {
             // -----
             // First, save the current locale; it's set by the main language file's (presumed) call to the
             // setlocale function.
             //
-            $this->locale = setlocale(LC_TIME, '0');
+            $this->locale = setlocale(\LC_TIME, '0');
 
             // -----
             // Using the current locale, retrieve the locale-specific 'short' date and time
@@ -137,28 +148,28 @@ class zcDate extends base
     /**
      * @since ZC v1.5.8
      */
-    public function enableDebug()
+    public function enableDebug(): void
     {
         $this->debug = true;
-        $this->debug('Debug enabled: ' . PHP_EOL . var_export($this, true));
+        $this->debug('Debug enabled: ' . \PHP_EOL . var_export($this, true));
     }
     /**
      * @since ZC v1.5.8
      */
-    public function disableDebug()
+    public function disableDebug(): void
     {
         $this->debug = false;
     }
 
     /**
-     * @param string $format  output method should start with a intlDate-format string
-     * @param int    $timestamp
+     * @param string $format output method should start with a intlDate-format string
+     * @param int $timestamp
      * @param string|null $calendar_locale Optional calendar-related locale. eg: 'ja_JP@calendar=japanese'
      *
      * @return false|string
      * @since ZC v1.5.8
      */
-    public function output(string $format, int $timestamp = 0, ?string $calendar_locale = null)
+    public function output(string $format, int $timestamp = 0, ?string $calendar_locale = null): false|string
     {
         $converted_format = '';
 
@@ -194,7 +205,7 @@ class zcDate extends base
             );
             $output = $this->dateObject->format($timestamp);
             if ($output === false) {
-                trigger_error(sprintf("Formatting error using '%s': %s (%d)", $converted_format, $this->dateObject->getErrorMessage(), $this->dateObject->getErrorCode()), E_USER_WARNING);
+                trigger_error(sprintf("Formatting error using '%s': %s (%d)", $converted_format, $this->dateObject->getErrorMessage(), $this->dateObject->getErrorCode()), \E_USER_WARNING);
             }
         } else {
             // Uses Date() when 'intl' extension is not compiled/activated in PHP.
@@ -225,7 +236,7 @@ class zcDate extends base
     /**
      * @since ZC v1.5.8
      */
-    protected function convertFormat(string $format)
+    protected function convertFormat(string $format): array|string
     {
         if (preg_match_all('/\'[^\']*\'/', $format, $multichaine, PREG_OFFSET_CAPTURE)) { // check for string inside single quotes which should not be converted
             $conststring = @[]; // array to keep escaped strings until the end
@@ -256,7 +267,7 @@ class zcDate extends base
         }
     }
 
-    protected function convert_intl_to_date_format(string $chaine)
+    protected function convert_intl_to_date_format(string $chaine): string
     {
         $intl2date = [ // Intermediate codes have been randomely generated from characters list excluding those used as parameter for IntlDate object.
             'EEEE' => 'l',
@@ -348,10 +359,10 @@ class zcDate extends base
     /**
      * @since ZC v1.5.8
      */
-    protected function debug(string $message)
+    protected function debug(string $message): void
     {
         if ($this->debug === true) {
-            error_log($message . PHP_EOL);
+            error_log($message . \PHP_EOL);
         }
     }
 }
