@@ -223,6 +223,7 @@ $define = [
     'ENTRY_TELEPHONE_NUMBER' => 'Numéro de téléphone : ',
     'ENTRY_TELEPHONE_NUMBER_ERROR' => '&nbsp;<span class="errorText">min ' . zen_config('ENTRY_TELEPHONE_MIN_LENGTH') . ' caractères</span>',
     'ERROR_ADMIN_SECURITY_WARNING' => 'Attention : votre connexion administrateur n’est pas sécurisée ... soit vous avez toujours les paramètres de connexion par défaut pour : admin admin ou vous n’avez pas supprimé ou modifié : démo démo <br>Les identifiants doivent être modifiés comme dès que possible pour la sécurité de votre boutique. ',
+    'ERROR_ADMIN_SESSION_INVALID_DUE_TO_PASSWORD_CHANGE' => 'Votre session a expiré car votre mot de passe a été modifié. Veuillez vous reconnecter.',
     'ERROR_CANNOT_DELETE_CUSTOMER_GROUP_DUE_TO_LINKED_CUSTOMERS' => 'ERREUR : impossible de supprimer le groupe car %s clients sont toujours affectés à ce groupe et le remplacement n’a pas été spécifié.',
     'ERROR_CANNOT_LINK_TO_SAME_CATEGORY' => 'Erreur : un produit lié ne peut pas être créé dans la même catégorie.',
     'ERROR_CANNOT_MOVE_CATEGORY_TO_CATEGORY_SELF' => 'Erreur : impossible de déplacer la catégorie vers la même catégorie! ID#',

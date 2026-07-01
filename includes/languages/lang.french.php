@@ -186,6 +186,7 @@ $define = [
     'ERROR_CORRECTIONS_HEADING' => 'Veuillez corriger l’info suivante : <br />',
     'ERROR_CUSTOMERS_ID_INVALID' => 'Les informations client ne peuvent pas être validées !<br />Veuillez vous connecter ou recréer votre compte ...',
     'ERROR_DATABASE_MAINTENANCE_NEEDED' => '<a href="https://docs.zen-cart.com/user/troubleshooting/error_71_maintenance_required/" rel="noopener" target="_blank">ERREUR 0071 Il semble y avoir un problème avec la base de données. Une maintenance est requise.</a>',
+    'ERROR_SESSION_INVALID_DUE_TO_PASSWORD_CHANGE' => 'Votre session a expiré car votre mot de passe a été modifié. Veuillez vous reconnecter.',
     'ERROR_DESTINATION_DOES_NOT_EXIST' => 'ERREUR : destination inexistante.',
     'ERROR_DESTINATION_NOT_WRITEABLE' => 'ERREUR : destination non inscriptible.',
     'ERROR_FILETYPE_NOT_ALLOWED' => 'Erreur : Le type de fichier téléchargé (%1$s) n’est pas pris en charge. Veuillez réessayer.',
