@@ -59,7 +59,6 @@ class zcDate extends base
     // strftime reference: https://www.php.net/manual/en/function.strftime.php
     // date_format reference: https://www.php.net/manual/en/datetime.format.php
     // intl format reference: https://unicode-org.github.io/icu/userguide/format_parse/datetime/#datetime-format-syntax
-    // or: https://www.unicode.org/reports/tr35/tr35-dates.html#Date_Field_Symbol_Table
     //
     /**
      * @since ZC v1.5.8
