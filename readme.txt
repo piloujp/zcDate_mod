@@ -1,14 +1,12 @@
-After strftime has been deprecated, date_format was used but it does not provide much internationalization. This mod uses international date object instead which is compatible with any language.
-Now, recent versions of Zen Cart although use international date object, which means this mod is not required anymore for internationalization.
+Recent versions of Zen Cart require international date object extension to be installed, which means the use of date() function as a fallback is not necessary anymore.
 Although strftime is not used anymore in Zen Cart, its parameter system is still there (%something). They are all replaced in this mod by the international date formatter ones (see links below) which is more efficient as no conversion is needed.
 But to keep backward compatibility, zcDate class has been modified to accept and convert old parameters to new system. Even if you use old plugins or files, it will still work.
 
 Install:
 --------
 As always backup your cart first.
-Please, use the version of this plugin corresponding to your Zen Cart version.
-If you have a fresh install of the latest Zen Cart (v2.0.0 or above), then copy all files respecting folder structure. Don't forget to rename 'YOUR_ADMIN' before.
-If not, or just to be safe, you have to merge them using a file merging tool.
+If you have a fresh Zen Cart v2.0.0 or above installed, then copy all files respecting folder structure. Don't forget to rename 'YOUR_ADMIN' before.
+If not, you have to merge them using a file merging tool.
 
 Files list:
 -----------
